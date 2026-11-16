@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Odds & EV Calculator | Tool-Utili</title>
+    <style>
+        :root {
+            --bg: #0b1117;
+            --card: #131c24;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --danger: #ef4444;
+            --text: #f3f4f6;
+            --muted: #9ca3af;
+            --border: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            text-align: center;
+            margin-bottom: 6px;
+            color: var(--accent);
+        }
+
+        p.subtitle {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            input:focus, select:focus {
+                border-color: var(--accent);
+            }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+            .row .group {
+                flex: 1;
+            }
+
+        .presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .preset-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .preset-btn:hover {
+                border-color: var(--accent);
+                color: var(--text);
+            }
+
+        .results {
+            background-color: var(--bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .verdict {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .ev-plus {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .ev-minus {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>♠️ Poker Odds & +EV</h1>
+        <p class="subtitle">Calcola outs, probabilità e convenienza del Call</p>
+
+        <div class="group">
+            <label for="street">Momento della mano (Street)</label>
+            <select id="street" onchange="calculate()">
+                <option value="flop">Al Flop (2 carte da scendere)</option>
+                <option value="turn">Al Turn (1 carta da scendere)</option>
+            </select>
+        </div>
+
+        <div class="group">
+            <label for="outs">I tuoi Outs (Carte utili nel mazzo)</label>
+            <input type="number" id="outs" value="9" min="1" max="25" oninput="calculate()">
+            <div class="presets">
+                <button class="preset-btn" onclick="setOuts(4)">Incastro (4)</button>
+                <button class="preset-btn" onclick="setOuts(8)">Scala Bilaterale (8)</button>
+                <button class="preset-btn" onclick="setOuts(9)">Progetto Colore (9)</button>
+                <button class="preset-btn" onclick="setOuts(15)">Colore + Scala (15)</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="group">
+                <label for="pot">Piatto Totale (€/$)</label>
+                <input type="number" id="pot" value="100" min="1" oninput="calculate()">
+            </div>
+            <div class="group">
+                <label for="call">Puntata da Chiamare</label>
+                <input type="number" id="call" value="30" min="1" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="results">
+            <div class="stat-row">
+                <span>Probabilità di chiudere:</span>
+                <span class="stat-value" id="winProb" style="color: var(--accent);">35.0%</span>
+            </div>
+            <div class="stat-row">
+                <span>Pot Odds richieste:</span>
+                <span class="stat-value" id="potOdds">18.8%</span>
+            </div>
+            <div id="verdictBox" class="verdict ev-plus">
+                ✅ CALL CONVENIENTE (+EV)
+            </div>
+        </div>
+
+        <div class="footer">tool-utili • Strumenti rapidi gratuiti</div>
+    </div>
+
+    <script>
+    function setOuts(val) {
+        document.getElementById('outs').value = val;
+        calculate();
+    }
+
+    function calculate() {
+        const street = document.getElementById('street').value;
+        let outs = parseFloat(document.getElementById('outs').value) || 0;
+        let pot = parseFloat(document.getElementById('pot').value) || 0;
+        let call = parseFloat(document.getElementById('call').value) || 0;
+
+        if (outs < 0) outs = 0;
+        if (outs > 45) outs = 45;
+
+        // Calcolo probabilità esatta
+        let winProb = 0;
+        if (street === 'flop') {
+            // 47 carte ignote al flop, 46 al turn
+            const missTurn = (47 - outs) / 47;
+            const missRiver = (46 - outs) / 46;
+            winProb = (1 - (missTurn * missRiver)) * 100;
+        } else {
+            // 46 carte ignote al turn
+            winProb = (outs / 46) * 100;
+        }
+
+        // Calcolo Pot Odds: Call / (Piatto attuale + Call del villain + il tuo Call)
+        // Nota: assumiamo che "Piatto Totale" includa già la puntata dell'avversario
+        let potOdds = 0;
+        if (pot + call > 0) {
+            potOdds = (call / (pot + call)) * 100;
+        }
+
+        document.getElementById('winProb').innerText = winProb.toFixed(1) + '%';
+        document.getElementById('potOdds').innerText = potOdds.toFixed(1) + '%';
+
+        const verdictBox = document.getElementById('verdictBox');
+        if (winProb >= potOdds) {
+            verdictBox.className = 'verdict ev-plus';
+            verdictBox.innerText = '✅ CALL CONVENIENTE (+EV)';
+        } else {
+            verdictBox.className = 'verdict ev-minus';
+            verdictBox.innerText = '❌ FOLD CONSIGLIATO (-EV)';
+        }
+    }
+
+    // Calcolo iniziale
+    calculate();
+    </script>
+
+</body>
+</html>
